@@ -25,6 +25,7 @@ class WordGameUI:
     def __init__(self, master):
         self.master = master
         self.game = WordGame()
+        self.auto_pronounce = True  # 控制自动发音
         
         # 创建主框架
         self.create_main_frames()
@@ -205,10 +206,12 @@ class WordGameUI:
         self.test_btn.pack(side=tk.LEFT, padx=5)
         self.spell_btn.pack(side=tk.LEFT, padx=5)
         
-        # 布局单词显示区域
+        # 布局单词显示区域（合并中英文）
         self.word_frame.pack(pady=20)
+        self.word_label.config(font=("Arial", 28))
         self.word_label.pack()
-        self.translation_label.pack(pady=10)
+        # 不再单独显示翻译标签
+        self.translation_label.pack_forget() 
         self.result_label.pack(pady=5)
         
         # 布局底部控制按钮
@@ -303,6 +306,10 @@ class WordGameUI:
         """下一个单词"""
         self.switch_mode(self.game.game_mode)
         
+        # 自动播放当前单词发音
+        if pygame_available and self.auto_pronounce:
+            self.master.after(500, self.play_pronunciation)  # 延迟确保UI更新完成
+        
     def play_pronunciation(self):
         """播放发音"""
         if not pygame_available:
@@ -314,17 +321,38 @@ class WordGameUI:
             sound_file = f"wordsounds/{word}.mp3"
             if os.path.exists(sound_file):
                 try:
-                    pygame.mixer.music.load(sound_file)
-                    pygame.mixer.music.play()
-                except:
-                    messagebox.showwarning("提示", "发音播放失败")
+                    # 初始化混音器（避免重复初始化）
+                    if not pygame.mixer.get_init():
+                        pygame.mixer.init(frequency=44100, size=-16, channels=2)
+                    
+                    # 使用Sound对象替代music模块（更稳定）
+                    sound = pygame.mixer.Sound(sound_file)
+                    sound.play()
+                except Exception as e:
+                    print(f"发音播放错误: {str(e)}")
+                    # 尝试重新生成问题文件
+                    self.regenerate_pronunciation(word)
             else:
-                messagebox.showwarning("提示", "发音文件不存在")
+                messagebox.showwarning("提示", f"发音文件不存在: {sound_file}")
+
+    def regenerate_pronunciation(self, word):
+        """重新生成问题发音文件"""
+        try:
+            from gtts import gTTS
+            tts = gTTS(text=word, lang='en')
+            tts.save(f"wordsounds/{word}.mp3")
+            print(f"已重新生成: wordsounds/{word}.mp3")
+        except Exception as e:
+            print(f"重新生成发音文件失败: {str(e)}")
 
     def switch_mode(self, mode):
         """切换模式"""
         self.game.game_mode = mode
         self.clear_feedback()
+        
+        # 首次切换模式时自动发音
+        if pygame_available and self.auto_pronounce:
+            self.master.after(500, self.play_pronunciation)
         
         # 隐藏所有模式特定的组件
         self.spelling_frame.pack_forget()
@@ -342,8 +370,8 @@ class WordGameUI:
             if hasattr(self, 'difficulty_frame'):
                 self.difficulty_frame.pack_forget()
             word = self.game.generate_learning_word()
-            self.word_label.config(text=word["word"])
-            self.translation_label.config(text=word["translation"])
+            self.word_label.config(text=f"{word['word']} - {word['translation']}")
+            self.translation_label.config(text="")
             
         elif mode == "测试模式":
             # 隐藏难度选择框
@@ -381,8 +409,8 @@ class WordGameUI:
         
         # 生成单词
         word = self.game.generate_spelling_word()
-        self.word_label.config(text=word["hint"])
-        self.translation_label.config(text=word["translation"])
+        self.word_label.config(text=f"{word['hint']} - {word['translation']}")
+        self.translation_label.config(text="")
         
         # 确保拼写组件存在
         if not hasattr(self, 'spelling_frame'):
@@ -412,8 +440,8 @@ class WordGameUI:
         self.game.set_spelling_difficulty(difficulty)
         
         word = self.game.generate_spelling_word()
-        self.word_label.config(text=word["hint"])
-        self.translation_label.config(text=word["translation"])
+        self.word_label.config(text=f"{word['hint']} - {word['translation']}")
+        self.translation_label.config(text="")
         self.spelling_frame.pack(pady=5)
         self.keyboard_frame.pack()
         self.spelling_entry.delete(0, tk.END)
