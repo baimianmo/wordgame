@@ -59,11 +59,23 @@ class WordGameUI:
         self.mode_frame = tk.Frame(self.control_frame)
         
         self.learn_btn = tk.Button(self.mode_frame, text="学习模式", 
-                                 command=lambda: self.switch_mode("学习模式"))
+                                 command=lambda: self.switch_mode("学习模式"),
+                                 bg="#4a8fe7" if self.game.game_mode == "学习模式" else "#e0e0e0",
+                                 fg="#ff0000" if self.game.game_mode == "学习模式" else "black",
+                                 relief=tk.RAISED if self.game.game_mode == "学习模式" else tk.FLAT,
+                                 font=("Arial", 12))
         self.test_btn = tk.Button(self.mode_frame, text="测试模式", 
-                                command=lambda: self.switch_mode("测试模式"))
+                                command=lambda: self.switch_mode("测试模式"),
+                                bg="#4a8fe7" if self.game.game_mode == "测试模式" else "#e0e0e0",
+                                fg="#ff0000" if self.game.game_mode == "测试模式" else "black",
+                                relief=tk.RAISED if self.game.game_mode == "测试模式" else tk.FLAT,
+                                font=("Arial", 12))
         self.spell_btn = tk.Button(self.mode_frame, text="拼写模式", 
-                                 command=lambda: self.switch_mode("拼写模式"))
+                                 command=lambda: self.switch_mode("拼写模式"),
+                                 bg="#4a8fe7" if self.game.game_mode == "拼写模式" else "#e0e0e0",
+                                 fg="#ff0000" if self.game.game_mode == "拼写模式" else "black",
+                                 relief=tk.RAISED if self.game.game_mode == "拼写模式" else tk.FLAT,
+                                 font=("Arial", 12))
         
     def create_word_area(self):
         """创建单词显示区域"""
@@ -173,9 +185,37 @@ class WordGameUI:
                 text=difficulty,
                 width=10,
                 command=lambda d=difficulty: self.set_difficulty_and_start(d),
-                relief=tk.RAISED if difficulty == "简单" else tk.FLAT
+                bg="#4a8fe7" if difficulty == "简单" else "#e0e0e0",
+                fg="#ff0000" if difficulty == "简单" else "black",
+                relief=tk.RAISED if difficulty == "简单" else tk.FLAT,
+                font=("Arial", 12)
             )
             btn.pack(pady=5)
+            
+        # 更新第二个set_difficulty_and_start方法中的样式处理
+        method_code = """
+    def set_difficulty_and_start(self, difficulty):
+        \"\"\"设置难度并开始\"\"\"
+        # 更新按钮样式
+        for widget in self.difficulty_frame.winfo_children():
+            if isinstance(widget, tk.Button):
+                widget.config(
+                    bg="#4a8fe7" if widget["text"] == difficulty else "#e0e0e0",
+                    fg="white" if widget["text"] == difficulty else "black",
+                    relief=tk.RAISED if widget["text"] == difficulty else tk.FLAT
+                )
+        
+        self.game.set_spelling_difficulty(difficulty)
+        
+        word = self.game.generate_spelling_word()
+        self.word_label.config(text=f"{word['hint']} - {word['translation']}")
+        self.translation_label.config(text="")
+        self.spelling_frame.pack(pady=5)
+        self.keyboard_frame.pack()
+        self.spelling_entry.delete(0, tk.END)
+        self.spelling_entry.focus()
+        self.spelling_entry.bind("<Return>", lambda e: self.check_spelling())
+"""
         
         # 添加年级选择标题
         tk.Label(self.grade_frame, 
@@ -191,7 +231,10 @@ class WordGameUI:
                 text=grade,
                 width=10,
                 command=lambda g=grade: self.change_grade(g),
-                bg="#e0e0e0" if grade != self.game.current_grade else "#a0c0ff"
+                bg="#4a8fe7" if grade == self.game.current_grade else "#e0e0e0",
+                fg="#ff0000" if grade == self.game.current_grade else "black",
+                relief=tk.RAISED if grade == self.game.current_grade else tk.FLAT,
+                font=("Arial", 12)
             )
             btn.pack(pady=2)
             self.grade_buttons[grade] = btn
@@ -236,9 +279,13 @@ class WordGameUI:
     def change_grade(self, grade):
         """切换年级"""
         self.game.set_grade(grade)
-        # 更新按钮背景色
+        # 更新按钮样式
         for g, btn in self.grade_buttons.items():
-            btn.config(bg="#a0c0ff" if g == grade else "#e0e0e0")
+            btn.config(
+                bg="#4a8fe7" if g == grade else "#e0e0e0",
+                fg="#ff0000" if g == grade else "black",
+                relief=tk.RAISED if g == grade else tk.FLAT
+            )
         # 刷新当前模式
         self.switch_mode(self.game.game_mode)
         
@@ -350,6 +397,14 @@ class WordGameUI:
         self.game.game_mode = mode
         self.clear_feedback()
         
+        # 更新模式按钮样式
+        for btn in [self.learn_btn, self.test_btn, self.spell_btn]:
+            btn.config(
+                bg="#4a8fe7" if btn["text"] == mode else "#e0e0e0",
+                fg="#ff0000" if btn["text"] == mode else "black",
+                relief=tk.RAISED if btn["text"] == mode else tk.FLAT
+            )
+        
         # 首次切换模式时自动发音
         if pygame_available and self.auto_pronounce:
             self.master.after(500, self.play_pronunciation)
@@ -435,7 +490,11 @@ class WordGameUI:
         # 更新按钮样式
         for widget in self.difficulty_frame.winfo_children():
             if isinstance(widget, tk.Button):
-                widget.config(relief=tk.RAISED if widget["text"] == difficulty else tk.FLAT)
+                widget.config(
+                    bg="#4a8fe7" if widget["text"] == difficulty else "#e0e0e0",
+                    fg="#ff0000" if widget["text"] == difficulty else "black",
+                    relief=tk.RAISED if widget["text"] == difficulty else tk.FLAT
+                )
         
         self.game.set_spelling_difficulty(difficulty)
         
